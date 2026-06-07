@@ -1,0 +1,25 @@
+{
+  "name": "backend-ledger",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev" : "npx nodemon server.js" , 
+    "start" : "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/govindsharma010/BANK-TRANSACTION-SYSTEM.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/govindsharma010/BANK-TRANSACTION-SYSTEM/issues"
+  },
+  "homepage": "https://github.com/govindsharma010/BANK-TRANSACTION-SYSTEM#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

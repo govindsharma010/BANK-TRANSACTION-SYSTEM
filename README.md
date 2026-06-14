@@ -119,7 +119,7 @@ npm run dev
 npm start
 ```
 
-The server will start on `http://localhost:3000`
+The server will start on `http://localhost:3000/`
 
 ## 📁 Project Structure
 

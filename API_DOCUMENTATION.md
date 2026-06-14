@@ -24,7 +24,7 @@ This document provides comprehensive API documentation for the Bank Transaction 
 ### Base URL
 
 ```
-http://localhost:3000/api
+http://localhost:3000/
 ```
 
 ### Content Type

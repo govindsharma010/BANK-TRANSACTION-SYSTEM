@@ -22,6 +22,12 @@ const userSchema = new mongoose.Schema({
         required :[ true, "Password is required for creating an account"],
         minLength : [6, "password should contain min 6 character"],
         select : true // bydefault query me nhi aayega when we requireed user deatils if false and if chahiye to true karo
+    },
+    systemUser : {
+      type : Boolean,
+      default : false,
+      immutable : true,
+      select : false
     }
 }, {
     timestamps : true

@@ -1,11 +1,12 @@
 # Bank Transaction System
 
-A robust Node.js backend application for managing banking transactions, user accounts, and financial operations. This system provides secure authentication, account management, and transaction processing capabilities.
+A robust Node.js backend application for managing banking transactions, user accounts, and financial operations. This system provides secure authentication, account management, and transaction proc[...]
 
 ## 📋 Table of Contents
 
 - [Features](#features)
 - [Tech Stack](#tech-stack)
+- [Deployment](#deployment)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -53,6 +54,16 @@ A robust Node.js backend application for managing banking transactions, user acc
 - **Environment Management**: dotenv v17.4.2
 - **Cookie Handling**: cookie-parser v1.4.7
 - **Development Tool**: Nodemon (for hot-reload)
+
+## 🚀 Deployment
+
+The backend application is deployed on **Render**:
+
+**Live API URL**: https://bank-transaction-system-6pbp.onrender.com/
+
+You can access all API endpoints using this base URL. For example:
+- Register: `https://bank-transaction-system-6pbp.onrender.com/api/auth/register`
+- Login: `https://bank-transaction-system-6pbp.onrender.com/api/auth/login`
 
 ## 📦 Prerequisites
 
@@ -333,4 +344,4 @@ For support, please open an issue on the [GitHub repository](https://github.com/
 
 ---
 
-**Last Updated**: June 14, 2026
+**Last Updated**: June 22, 2026

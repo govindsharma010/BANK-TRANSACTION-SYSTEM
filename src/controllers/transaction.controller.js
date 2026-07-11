@@ -25,23 +25,42 @@ async function createTransaction(req, res){
      */
     const {fromAccount, toAccount, amount , idempotencyKey} = req.body
 
-    if(!fromAccount || !toAccount || !amount || !idempotencyKey){
+    if(!fromAccount || !toAccount || amount === undefined || amount === null || !idempotencyKey){
         return res.status(400).json({
             message: "FromAccount, toAccount, amount and idempotencyKey are required"
 
         })
     }
+   
+    if (!mongoose.Types.ObjectId.isValid(fromAccount) || !mongoose.Types.ObjectId.isValid(toAccount)) {
+    return res.status(400).json({ message: "fromAccount and toAccount must be valid account IDs" })
+    }
+
+   if (typeof amount !== "number" || Number.isNaN(amount) || amount <= 0) {
+    return res.status(400).json({ message: "amount must be a positive number" })
+   }
+
+   if (fromAccount === toAccount) {
+    return res.status(400).json({ message: "fromAccount and toAccount cannot be the same" })
+  }
+
     const fromUserAccount = await accountModel.findOne({
-        _id : fromAccount
+        _id : fromAccount,
+        user : req.user._id
     })
 
     const toUserAccount = await accountModel.findOne({
         _id: toAccount
     })
 
-    if(!fromUserAccount || !toUserAccount){
-        return res.status(400).json({
-            message: "Invalid fromAccount or toAccount"
+    if(!fromUserAccount ){
+        return res.status(403).json({
+            message: "Invalid fromAccount or you are not authorized to perform this transaction"
+        })
+    }
+     if(!toUserAccount){
+        return res.status(403).json({
+            message: "Invalid toAccount "
         })
     }
  
@@ -103,9 +122,9 @@ async function createTransaction(req, res){
      */ // to avoid inconsistency we have to do 5,6, 7, 8 all at once other wise revert back all if any error occur
 
      
+    const session = await mongoose.startSession()
 try{
-     const session = await mongoose.startSession()
-     session.startTransaction()  // after this whatever we would do  will occcur all at once otherwise not 
+     session.startTransaction()
 
       const transaction = (await transactionModel.create([
         {
@@ -116,49 +135,41 @@ try{
         status: "PENDING"
       }], {session} ))[ 0 ]
 
-      const debitLedgerEntry = await ledgerModel.create([{
+      await ledgerModel.create([{
         account : fromAccount,
         amount : amount ,
         transaction : transaction._id,
         type: "DEBIT"
       }], {session})
 
-      await (() => {
-       return new Promise((resolve)  => setTimeout(resolve, 15 * 1000))  
-      })()
-
-      const creditLedgerEntry = await ledgerModel.create([{
+      await ledgerModel.create([{
         account : toAccount,
         amount : amount ,
         transaction : transaction._id,
         type: "CREDIT"
       }], {session})
-      // transaction.status = "COMPLETED"
-      // await transaction.save({session})
 
-       await transactionModel.findOneAndUpdate(
+       const completedTransaction = await transactionModel.findOneAndUpdate(
         {  _id: transaction._id },
         { status : "COMPLETED"},
-        { session }
+        { session, new: true }
        )
 
       await session.commitTransaction()
       session.endSession()
-    
 
-    /**
-     * 10. Send Transaction Email
-     */
-    await emailService.sendTransactionSuccessEmail(req.user.email, req.user.name, amount, transaction._id ,toAccount)
+    await emailService.sendTransactionSuccessEmail(req.user.email, req.user.name, amount, completedTransaction._id ,toAccount)
 
     return res.status(201).json({
        message : "Transaction completed successfully",
-       transaction : transaction 
+       transaction : completedTransaction 
     })
    } catch(error){
-
-      return res.status(400).json({
-        message : "transaction is Pending due to some issue"
+      await session.abortTransaction().catch(() => {})
+      session.endSession()
+      console.error("Transaction error:", error)
+      return res.status(500).json({
+        message : "Transaction failed due to a server error"
     })
   }
 }
@@ -166,11 +177,36 @@ try{
 async function createInitialFundsTransaction(req,res){
    const {toAccount, amount , idempotencyKey} = req.body
 
-    if(!toAccount || !amount || !idempotencyKey){
+    if(!toAccount || amount===undefined || amount === null || !idempotencyKey){
     return res.status(400).json({
         message : "toAccount amount  and idempotencyKey are required "
     })
    }
+    
+    if (!mongoose.Types.ObjectId.isValid(toAccount)) {
+    return res.status(400).json({ message: "toAccount must be a valid account ID" })
+    }
+
+   if (typeof amount !== "number" || Number.isNaN(amount) || amount <= 0) {
+    return res.status(400).json({ message: "amount must be a positive number" })
+   }
+
+
+  const isTransactionAlreadyExists = await transactionModel.findOne({ idempotencyKey })
+
+  if (isTransactionAlreadyExists) {
+    if (isTransactionAlreadyExists.status === "COMPLETED") {
+    return res.status(200).json({
+      message: "Transaction already processed",
+      transaction: isTransactionAlreadyExists
+    })
+    }
+    if (isTransactionAlreadyExists.status === "PENDING") {
+    return res.status(200).json({ message: "Transaction is still processing" })
+   }
+  return res.status(409).json({ message: `Transaction previously ${isTransactionAlreadyExists.status.toLowerCase()}, please retry with a new idempotency key` })
+  }
+
 
    const toUserAccount = await accountModel.findOne({
     _id: toAccount
@@ -194,6 +230,7 @@ async function createInitialFundsTransaction(req,res){
    }
 
    const session = await mongoose.startSession()
+   try{
    session.startTransaction()
 
    const transaction = await  transactionModel.create([{
@@ -227,10 +264,35 @@ async function createInitialFundsTransaction(req,res){
     message : "Initial funds transaction completed successfull",
     transaction : transaction
    })
+} catch(error){
+    await session.abortTransaction()
+    session.endSession()
+    console.error("Error during initial funds transaction:", error)
+    return res.status(400).json({
+        message : "An error occurred while processing the transaction"
+    })
+}
 
+}
+
+async function getUserTransactions(req, res) {
+  const userAccounts = await accountModel.find({ user: req.user._id }).select("_id")
+  const accountIds = userAccounts.map((account) => account._id)
+
+  const transactions = await transactionModel
+    .find({
+      $or: [
+        { fromAccount: { $in: accountIds } },
+        { toAccount: { $in: accountIds } }
+      ]
+    })
+    .sort({ createdAt: -1 })
+
+  res.status(200).json({ transactions })
 }
 
 module.exports = {
     createTransaction,
-    createInitialFundsTransaction
+    createInitialFundsTransaction,
+    getUserTransactions
 }

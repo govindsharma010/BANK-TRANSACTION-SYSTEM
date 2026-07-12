@@ -9,14 +9,14 @@ const asyncHandler = require("../utils/asyncHandler")
  * -Create a new account
  * -Protected Route (authentication by middleware)
  */
- router.post("/", asyncHandler(authMiddleware.authMiddleware), accountController.createAccountController)
+ router.post("/", asyncHandler(authMiddleware.authMiddleware), asyncHandler(accountController.createAccountController))
 
  /**
   * -GET/api/accounts
   * -Get all accounts of the looged_in user
   * -Protected Route
   */
- router.get("/", asyncHandler(authMiddleware.authMiddleware), accountController.getUserAccountsController)
+ router.get("/", asyncHandler(authMiddleware.authMiddleware), asyncHandler(accountController.getUserAccountsController))
  
  /**
   * -GET/api/accounts/balance/:accountId

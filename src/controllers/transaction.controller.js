@@ -233,30 +233,30 @@ async function createInitialFundsTransaction(req,res){
    try{
    session.startTransaction()
 
-   const transaction = await  transactionModel.create([{
+   const transaction = await transactionModel.create({
        fromAccount: fromUserAccount._id,
        toAccount,
        amount,
        idempotencyKey,
        status : "PENDING"
-   }], { session } ) 
+   }, { session } )
 
-   const debitLedgerEntry = await ledgerModel.create([{
+   await ledgerModel.create({
     account: fromUserAccount._id,
     amount : amount,
     transaction : transaction._id,
     type : "DEBIT"
-}], {session})
+   }, {session})
 
-   const creditLedgerEntry = await ledgerModel.create([{
+   await ledgerModel.create({
     account: toAccount,
     amount : amount,
     transaction : transaction._id,
     type : "CREDIT"
-   }], {session})
+   }, {session})
 
    transaction.status = "COMPLETED"
-   await transaction.save ({ session })
+   await transaction.save({ session })
    await session.commitTransaction()
    session.endSession()
 

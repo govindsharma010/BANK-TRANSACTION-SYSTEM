@@ -23,7 +23,12 @@ const validateTransaction = [
  * -Create a new transaction
  */
 
-transactionRoutes.post("/", asyncHandler(authMiddleware.authMiddleware), validateTransaction, transactionController.createTransaction)
+transactionRoutes.post(
+  "/",
+  asyncHandler(authMiddleware.authMiddleware),
+  validateTransaction,
+  asyncHandler(transactionController.createTransaction)
+)
 
 /**
  * GET /api/transactions
